@@ -31,6 +31,19 @@ into redis.  This may take a few moments.
 On the web page, start typing, and hopefully we'll see a real-time search for
 tweets.  
 
+Stats
+-----
+
+It's not a very heavy-duty test, that's for sure.  My collection of 1100-or-so
+tweets is translated into a ZSET of about 25,000 search prefixes.  It takes a
+few seconds to create the whole dataset, but the searches are blazing fast.
+
+To Do
+-----
+
+- grow the data set by a factor of 10 to 100
+- implement another ZSET to rank results (they're in random order now)
+
 
 
 
