@@ -42,13 +42,26 @@ var CompleterAppView = Backbone.View.extend({
   el: '#application',
 
   events: {
-    'keydown #search': 'search'
+    'keydown #search': 'searchKeydown'
   },
 
-  search: function(event) {
+  searchKeydown: function(event) {
+    // Search for what the user has typed
+    //
+    // This event handler will get fired before the 
+    // search-input box receive the character typed, 
+    // so concatenate the current character onto the 
+    // end of the contents of the search box.
+    //
+    // this ends up appending an uppercase letter,
+    // which appears to be what event.which and event.keyCode
+    // both report.  but that doesn't matter in this app.
+    var text = $('#search-input').val();
+    text += String.fromCharCode(event.which);
+
     var self = this;
     this.$('.tweet-content').remove();
-    now.search($('#search-input').val(), 10, function(err, results) {
+    now.search(text, 10, function(err, results) {
       _.each(results, function(tuple) {
         var tweet = new Tweet(
           {username: tweetToHtml(tuple[0]),
