@@ -11,8 +11,8 @@ function deleteAll() {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1);
 }
 
-function addCompletions(text) {
-  text = text.trim().toLowerCase();
+function addCompletions(originalText) {
+  var text = originalText.trim().toLowerCase();
   if (! text) {
     return null, null;
   }
@@ -22,11 +22,9 @@ function addCompletions(text) {
       var prefix = word.slice(0, end_index);
       r.zadd(ZKEY_COMPL, 0, prefix);
     }
-    r.zadd(ZKEY_COMPL, 0, text+'*');
-    r.sadd(SKEY_DOCS_PREFIX + word, text);
+    r.zadd(ZKEY_COMPL, 0, word+'*');
+    r.sadd(SKEY_DOCS_PREFIX + word, originalText);
   });
-  r.zadd(ZKEY_COMPL, 0, text+'*');
-  r.sadd(SKEY_DOCS_PREFIX + text, text);
 }
 
 exports.addFromFile = addFromFile = function(filename) {
@@ -137,3 +135,10 @@ exports.search = search = function(phrase, count, callback) {
   });
 }
 
+r.zcard(ZKEY_COMPL, function(err, card) {
+  if (card === 0) {
+    console.log("Bootstrapping tweet data.");
+    addFromFile('./data/tweets.txt');
+    console.log("This is asynchronous, so go ahead and do whatever you want.");
+  }
+});
