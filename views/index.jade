@@ -1,2 +1,15 @@
-h1= title
-p Welcome to #{title}
+#application
+
+  #search
+    div Search:
+    div 
+      input(type='text', id='search-input')
+
+  #tweets
+
+script(type='text/javascript')
+  head.ready(function() {
+    var app = new CompleterApp()
+    var appView = new CompleterAppView({model: app});
+  });
+
