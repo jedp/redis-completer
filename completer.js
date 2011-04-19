@@ -40,9 +40,11 @@ exports.addFromFile = addFromFile = function(filename) {
 
 exports.getWordCompletions = getWordCompletions = function(word, count, callback) {
   // get up to count completions for the given word
+  // if prefix ends with '*', get the next exact completion
   rangelen = 50;
  
   var prefix = word.toLowerCase().trim();
+  var getExact = word[word.length-1] === '*'
   var results = []
 
   if (! prefix) {
@@ -71,6 +73,9 @@ exports.getWordCompletions = getWordCompletions = function(word, count, callback
 
           if (entry[entry.length-1] === '*' && results.length <= count) {
             results.push(entry.slice(0, -1));
+            if (getExact) {
+              return callback(null, results);
+            }
           } 
         }
       }
@@ -80,7 +85,15 @@ exports.getWordCompletions = getWordCompletions = function(word, count, callback
 }
 
 exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, callback) {
+
+  // when getting phrase completions, we should find a fuzzy match for the last
+  // word, but treat the words before it as what the user intends.  So for
+  // instance, if we get "more pie", treat that as "more* pie"
+
   phrase = phrase.toLowerCase().trim();
+
+  // tag all words but last as 'exact' matches
+  phrase = phrase.replace(/(\w)\s+/g, "$1\* ");
 
   var prefixes = phrase.split(/\s+/);
   var resultSet = {};
