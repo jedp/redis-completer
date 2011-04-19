@@ -4,8 +4,12 @@
  */
 
 var express = require('express');
+var nowjs = require('now');
+var completer = require('./completer');
 
 var app = module.exports = express.createServer();
+
+var everyone = nowjs.initialize(app);
 
 // Configuration
 
@@ -30,9 +34,15 @@ app.configure('production', function(){
 
 app.get('/', function(req, res){
   res.render('index', {
-    title: 'Express'
+    title: 'node-redis autocomplete'
   });
 });
+
+// nowjs methods
+
+everyone.now.search = function(text, count, callback) {
+  completer.search(text, count, callback);
+}
 
 // Only listen on $ node app.js
 
