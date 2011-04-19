@@ -7,12 +7,12 @@ be worth much more than a learning example.
 Summary
 -------
 
-Antirez posted this nice gist http://gist.github.com/574044, which shows how to
+Antirez posted this [nice gist](http://gist.github.com/574044), which shows how to
 make search tries in redis.
 
-I found j4mie's translation of the same to python,
-https://gist.github.com/577852, and extended that to allow for multi-word
-searches.
+I found j4mie's [translation of the same to
+python](https://gist.github.com/577852), which I extended to [allows for
+multi-word searches](https://gist.github.com/925979).
 
 After that, I put together this little node.js app, which has the following
 components:
@@ -23,7 +23,7 @@ components:
 
 In the `data` directory is a file containing a little over 1000 tweets.  (These
 tweets are mashups of Kanye West + Victor Medvedev and Martha Stewart + Lady
-Gaga.)
+Gaga, provided by my [markov-tweeter](https://github.com/jedp/markov-tweeter).)
 
 When you run `app.js`, it will make sure these have been processed and shoved
 into redis.  This may take a few moments.
