@@ -124,6 +124,9 @@ exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, ca
 
 exports.search = search = function(phrase, count, callback) {
   // @callback with up to @count matches for @phrase
+  var count = count || 10;
+  var callback = callback || function() {};
+
   getPhraseCompletions(phrase, 10, function(err, completions) {
     if (err) {
       callback(err, null);
