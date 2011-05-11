@@ -1,50 +1,46 @@
-node/redis autocomplete
-=======================
+redis-completer for node.js
+===========================
 
-I'm just trying to get a handle on node and redis.  Please don't expect this to
-be worth much more than a learning example.
+An implementation of antirez's
+[http://gist.github.com/574044](http://gist.github.com/574044) for node.js.
+
+Installing
+----------
+
+`npm install redis-completer`
 
 Summary
 -------
 
-Antirez posted this [nice gist](http://gist.github.com/574044), which shows how to
-make search tries in redis.
+Sebastian Sanfilippo posted this [really neat gist](http://gist.github.com/574044),
+which shows how to make search tries in redis for fast search completers.
 
 I found j4mie's [translation of the same to
 python](https://gist.github.com/577852), which I extended to [allows for
 multi-word searches](https://gist.github.com/925979).
 
-After that, I put together this little node.js app, which has the following
-components:
+This is another translation of those examples for node.js.  It has the
+following components:
 
 - A front-end with backbone models for searching and displaying results
 - A `completer.js` that provides multi-word completion via redis
-- An app that lets the front-end communicate with completer via now.js
+- An example app that lets the front-end communicate with completer via now.js
 
-In the `data` directory is a file containing a little over 1000 tweets.  (These
-tweets are mashups of Kanye West + Victor Medvedev and Martha Stewart + Lady
-Gaga, provided by my [markov-tweeter](https://github.com/jedp/markov-tweeter).)
+In the `example/data` directory is a file containing a little over 1000 tweets.
+(These tweets are mashups of Kanye West + Victor Medvedev and Martha Stewart +
+Lady Gaga, produced by my 
+[markov-tweeter](https://github.com/jedp/markov-tweeter).)
 
-When you run `app.js`, it will make sure these have been processed and shoved
-into redis.  This may take a few moments.
+When you run `example/app.js`, it will make sure these have been processed and
+shoved into redis.  This may take a few moments to complete, but it happens
+asynchronously, so you can start using the app right away.
 
 On the web page, start typing, and hopefully we'll see a real-time search for
 tweets.  
 
-Stats
------
-
-It's not a very heavy-duty test, that's for sure.  My collection of 1100-or-so
-tweets is translated into a ZSET of about 25,000 search prefixes.  It takes a
-few seconds to create the whole dataset, but the searches are blazing fast.
-
 To Do
 -----
 
-- grow the data set by a factor of 10 to 100
-- implement another ZSET to rank results (they're in random order now)
-
-
-
+- use a ZSET to rank results (they're in random order now)
 
 
