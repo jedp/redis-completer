@@ -11,7 +11,7 @@ function deleteAll() {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1);
 }
 
-function addCompletions(originalText) {
+exports.addCompletions = addCompletions = function (originalText) {
   var text = originalText.trim().toLowerCase();
   if (! text) {
     return null, null;
