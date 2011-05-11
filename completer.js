@@ -148,10 +148,3 @@ exports.search = search = function(phrase, count, callback) {
   });
 }
 
-r.zcard(ZKEY_COMPL, function(err, card) {
-  if (card === 0) {
-    console.log("Bootstrapping tweet data.");
-    addFromFile('./data/tweets.txt');
-    console.log("This is asynchronous, so go ahead and do whatever you want.");
-  }
-});

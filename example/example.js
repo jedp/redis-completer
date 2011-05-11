@@ -11,6 +11,17 @@ var app = module.exports = express.createServer();
 
 var everyone = nowjs.initialize(app);
 
+// bootstrap data if necessary
+
+var r = require('redis').createClient();
+r.zcard('compl', function(err, card) {
+  if (card === 0) {
+    console.log("Bootstrapping tweet data.");
+    addFromFile('./data/tweets.txt');
+    console.log("This is asynchronous, so go ahead and do whatever you want.");
+  }
+});
+
 // Configuration
 
 app.configure(function(){
