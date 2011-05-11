@@ -1,10 +1,19 @@
-var _ = require('underscore');
-
-var fs = require('fs');
 var r = require('redis').createClient();
+var _ = require('underscore');
+var fs = require('fs');
 
+// prefixes for redis sets
+// use applicationPrefix() to set the initial prefix
+var _appPrefix = '';
 var ZKEY_COMPL = 'compl';
 var SKEY_DOCS_PREFIX = 'docs:';
+
+exports.applicationPrefix = applicationPrefix = function(prefix) {
+  // update key prefixes with user-specified application prefix
+  _appPrefix = prefix;
+  ZKEY_COMPL = prefix + ':' + 'compl';
+  SKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
+};
 
 function deleteAll() {
   // clear all data
@@ -139,14 +148,9 @@ exports.search = search = function(phrase, count, callback) {
       if (keys.length) { 
         r.sunion(keys, function(err, results) {
           if (err) {
-            callback(err, null);
-          } else {
-            // convert results like "@foo i like pie" to ("@foo", "i like pie")
-            var tuples = _.map(results.slice(0, count), function(tweet) {
-              return tweet.split(/(@\w+)/).slice(1,3);
-            });
-            callback(null, tuples);
-          }
+            return callback(err, []);
+          } 
+          return callback(null, results);
         });
       } else {
         callback(null, []);
