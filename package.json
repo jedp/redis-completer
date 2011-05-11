@@ -1,7 +1,7 @@
 {"name": "redis-completer",
  "description": "A redis completer using Sebastian's trie algorithm: https://gist.github.com/574044",
  "keywords": ["redis", "completer", "trie", "autocomplete"],
- "version": 0.1, 
+ "version": "0.1", 
  "authors": ["Jed Parsons <jed@jedparsons.com> (http://jedparsons.com)"],
  "repository":
     {"type": "git",
