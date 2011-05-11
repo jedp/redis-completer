@@ -5,7 +5,7 @@
 
 var express = require('express');
 var nowjs = require('now');
-var completer = require('./completer');
+var completer = require('../completer');
 
 var app = module.exports = express.createServer();
 
@@ -47,6 +47,6 @@ everyone.now.search = function(text, count, callback) {
 // Only listen on $ node app.js
 
 if (!module.parent) {
-  app.listen(3000);
+ app.listen(3001);
   console.log("Express server listening on port %d", app.address().port);
 }

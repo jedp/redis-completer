@@ -7,3 +7,12 @@
 [submodule "public/javascripts/headjs"]
 	path = public/javascripts/headjs
 	url = git://github.com/headjs/headjs.git
+[submodule "example/public/javascripts/headjs"]
+	path = example/public/javascripts/headjs
+	url = git://github.com/headjs/headjs.git
+[submodule "example/public/javascripts/backbone"]
+	path = example/public/javascripts/backbone
+	url = git://github.com/documentcloud/backbone.git
+[submodule "example/public/javascripts/underscore"]
+	path = example/public/javascripts/underscore
+	url = git://github.com/documentcloud/underscore.git

@@ -1,4 +1,4 @@
-var _ = require('./public/javascripts/underscore');
+var _ = require('underscore');
 
 var fs = require('fs');
 var r = require('redis').createClient();
