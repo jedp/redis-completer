@@ -11,7 +11,11 @@ function deleteAll() {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1);
 }
 
-exports.addCompletions = addCompletions = function (originalText) {
+exports.addCompletions = addCompletions = function (originalText, key) {
+  // Add completions for originalText to the completions trie.
+  // To a set indexed by the full completed word, add 'key' or 
+  // original text if no key was given.
+  var keyToStore = key || originalText;
   var text = originalText.trim().toLowerCase();
   if (! text) {
     return null, null;
@@ -23,7 +27,7 @@ exports.addCompletions = addCompletions = function (originalText) {
       r.zadd(ZKEY_COMPL, 0, prefix);
     }
     r.zadd(ZKEY_COMPL, 0, word+'*');
-    r.sadd(SKEY_DOCS_PREFIX + word, originalText);
+    r.sadd(SKEY_DOCS_PREFIX + word, keyToStore);
   });
 }
 
