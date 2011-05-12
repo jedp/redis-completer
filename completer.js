@@ -175,15 +175,21 @@ exports.search = search = function(phrase, count, callback) {
             }
 
             if (iter == keys.length) {
-              return callback(null, results);
+              // it's annoying to deal with dictionaries in js
+              // turn it into a sorted list for the client's convenience
+              var ret = [];
+              for (var key in results) {
+                ret.push(key);
+              }
+              ret.sort(function(a,b) { return results[b] - results[a] });
+              return callback(null, ret);
             }
 
           });
         });
       } else {
-        callback(null, {});
+        callback(null, []);
       }
     }
   });
 }
-
