@@ -9,6 +9,49 @@ Installing
 
 `npm install redis-completer`
 
+Usage
+-----
+
+Get a completer and provide a unique namespace for your app:
+
+    $ node
+    > completer = require('redis-completer');
+    > completer.applicationPrefix('winning');
+
+That prefix prevents key conflics in redis.  Make sure you use a prefix for
+each project.
+
+Add completions for a document:
+
+    > completer.addCompletions(text, id, score);
+
+`id` and `score` are optional.  If `id` is `null`, it will be ignored.
+
+If an `id` is provided, it will be concatenated with `text` in the final lookup
+table making a compound key of the form `id:text`. The idea here is to give you
+a way to stash a database key and a chunk of text together, so you can find
+your way back to some document you have stored elsewhere.  E.g., if you're
+auto-completing a search by title, you could use the key to help retrieve the
+entire document.
+
+Completions are sorted by score, so use that to weight documents you want to
+show up first.
+
+For example:
+
+    > // adding completions:    text              id  score
+    > completer.addCompletions("Have some pie",    1,    42);
+    > completer.addCompletions("Have some quiche", 2,     6);
+    > completer.addCompletions("I prefer quiche",  3,    99);
+
+    > completer.search("have", 10, function(err, r) { console.log(r) });
+    [ '1:Have some pie', '2:Have some quiche' ]
+    > completer.search("quiche", 10, function(err, r) { console.log(r) });
+    [ '3:I prefer quiche', '2:Have some quiche' ]
+
+It's up to me to remember that I used a `key` and deal with that when I process
+the text.
+
 Summary
 -------
 
@@ -38,9 +81,5 @@ asynchronously, so you can start using the app right away.
 On the web page, start typing, and hopefully we'll see a real-time search for
 tweets.  
 
-To Do
------
-
-- use a ZSET to rank results (they're in random order now)
 
 
