@@ -22,9 +22,13 @@ function deleteAll() {
 
 exports.addCompletions = addCompletions = function (originalText, key) {
   // Add completions for originalText to the completions trie.
-  // To a set indexed by the full completed word, add 'key' or 
-  // original text if no key was given.
-  var keyToStore = key || originalText;
+  // Store the original text, prefixed by the optional 'key'
+  
+  if (key && key.toString().match(':')) {
+    return new Error("Invalid key.  May not contain ':'"), null;
+  }
+
+  var keyToStore = key && key+':'+originalText || originalText;
   var text = originalText.trim().toLowerCase();
   if (! text) {
     return null, null;
