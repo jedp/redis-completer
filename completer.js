@@ -6,13 +6,13 @@ var fs = require('fs');
 // use applicationPrefix() to set the initial prefix
 var _appPrefix = '';
 var ZKEY_COMPL = 'compl';
-var SKEY_DOCS_PREFIX = 'docs:';
+var ZKEY_DOCS_PREFIX = 'docs:';
 
 exports.applicationPrefix = applicationPrefix = function(prefix) {
   // update key prefixes with user-specified application prefix
   _appPrefix = prefix;
   ZKEY_COMPL = prefix + ':' + 'compl';
-  SKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
+  ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
 };
 
 function deleteAll() {
@@ -20,18 +20,19 @@ function deleteAll() {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1);
 }
 
-exports.addCompletions = addCompletions = function (originalText, key) {
+exports.addCompletions = addCompletions = function (phrase, id, score) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
   
-  if (key && key.toString().match(':')) {
-    return new Error("Invalid key.  May not contain ':'"), null;
-  }
-
-  var keyToStore = key && key+':'+originalText || originalText;
-  var text = originalText.trim().toLowerCase();
+  var text = phrase.trim().toLowerCase();
   if (! text) {
     return null, null;
+  }
+
+  if (id !== null) {
+    phraseToStore = id + ':' + phrase;
+  } else {
+    phraseToStore = phrase;
   }
 
   _.each(text.split(/\s+/), function(word) {
@@ -40,7 +41,7 @@ exports.addCompletions = addCompletions = function (originalText, key) {
       r.zadd(ZKEY_COMPL, 0, prefix);
     }
     r.zadd(ZKEY_COMPL, 0, word+'*');
-    r.sadd(SKEY_DOCS_PREFIX + word, keyToStore);
+    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore);
   });
 }
 
@@ -148,16 +149,39 @@ exports.search = search = function(phrase, count, callback) {
     if (err) {
       callback(err, null);
     } else {
-      var keys = _.map(completions, function(key) { return SKEY_DOCS_PREFIX+key });
+      var keys = _.map(completions, function(key) { 
+        return ZKEY_DOCS_PREFIX+key 
+      });
+
       if (keys.length) { 
-        r.sunion(keys, function(err, results) {
-          if (err) {
-            return callback(err, []);
-          } 
-          return callback(null, results);
+        var results = {};
+        var iter = 0;
+
+        // accumulate docs and the scores for each key
+        
+        _.each(keys, function(key) {
+          r.zrevrangebyscore(key, 'inf', 0, 'withscores', function (err, docs) {
+            // returns a list of [doc, score, doc, score ...]
+            iter ++;  
+            if (err) {
+              return callback(err, {});
+            } else {
+              while (docs.length > 0) {
+                var doc = docs.shift();
+                var score = parseFloat(docs.shift());
+                var prevScore = typeof results[doc] !== 'undefined' && results[doc] || 0;
+                results[doc] = score + prevScore;
+              }
+            }
+
+            if (iter == keys.length) {
+              return callback(null, results);
+            }
+
+          });
         });
       } else {
-        callback(null, []);
+        callback(null, {});
       }
     }
   });
