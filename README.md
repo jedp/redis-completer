@@ -37,20 +37,38 @@ entire document.
 Completions are sorted by score, so use that to weight documents you want to
 show up first.
 
-For example:
+Here's an example showing show score is reflected in search results:
 
     > // adding completions:    text              id  score
     > completer.addCompletions("Have some pie",    1,    42);
     > completer.addCompletions("Have some quiche", 2,     6);
     > completer.addCompletions("I prefer quiche",  3,    99);
 
-    > completer.search("have", 10, function(err, r) { console.log(r) });
+    > // convenience to print results
+    > function print(err, results) { console.log(results) }
+
+    > completer.search("have", 10, print);
     [ '1:Have some pie', '2:Have some quiche' ]
-    > completer.search("quiche", 10, function(err, r) { console.log(r) });
+    > completer.search("quiche", 10, print);
     [ '3:I prefer quiche', '2:Have some quiche' ]
 
 It's up to me to remember that I used a `key` and deal with that when I process
 the text.
+
+When multi-word phrases are matched, the scores for matches accumulate.  For
+example:
+
+    > completer.addCompletions("something borrowed", 'one',  6);
+    > completer.addCompletions("something blue",     'two', 10);
+
+    // most valuable match first
+    > completer.search("some", 10, print);
+    [ 'two:something blue', 'one:something borrowed' ]
+
+    // most valuable match after accumulating scores first
+    > completer.search("something borr", 10, print);
+    [ 'one:something borrowed', 'two:something blue' ]
+
 
 Summary
 -------
