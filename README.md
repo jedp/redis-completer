@@ -4,8 +4,8 @@ redis-completer for node.js
 An implementation of antirez's
 [http://gist.github.com/574044](http://gist.github.com/574044) for node.js.
 
-Installing
-----------
+Installation
+-------------
 
 `npm install redis-completer`
 
@@ -70,8 +70,8 @@ example:
     [ 'one:something borrowed', 'two:something blue' ]
 
 
-Summary
--------
+Overview
+--------
 
 Sebastian Sanfilippo posted this [really neat gist](http://gist.github.com/574044),
 which shows how to make search tries in redis for fast search completers.
