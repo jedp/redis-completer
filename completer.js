@@ -59,7 +59,7 @@ exports.addFromFile = addFromFile = function(filename) {
 exports.getWordCompletions = getWordCompletions = function(word, count, callback) {
   // get up to count completions for the given word
   // if prefix ends with '*', get the next exact completion
-  rangelen = 50;
+  var rangelen = 50;
  
   var prefix = word.toLowerCase().trim();
   var getExact = word[word.length-1] === '*'
