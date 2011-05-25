@@ -33,11 +33,14 @@ module.exports = testCase({
   }, 
 
   "search": function(test) {
-    test.expect(3);
+    test.expect(4);
 
     completer.search("I like", 10, function(err, compls) {
       if (err) throw err;
       test.ok(compls.length === 2);
+
+      // because of score, glug will come up first
+      test.ok(compls[0] === "glug:I like pie");
 
       completer.search("potatoes", 10, function(err, compls) {
         if (err) throw err;
