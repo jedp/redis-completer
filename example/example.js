@@ -6,6 +6,7 @@
 var express = require('express');
 var nowjs = require('now');
 var completer = require('../completer');
+completer.applicationPrefix('demo');
 
 var app = module.exports = express.createServer();
 
@@ -17,7 +18,7 @@ var r = require('redis').createClient();
 r.zcard('compl', function(err, card) {
   if (card === 0) {
     console.log("Bootstrapping tweet data.");
-    addFromFile('./data/tweets.txt');
+    completer.addFromFile('./data/tweets.txt');
     console.log("This is asynchronous, so go ahead and do whatever you want.");
   }
 });

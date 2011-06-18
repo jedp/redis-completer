@@ -52,7 +52,7 @@ exports.addFromFile = addFromFile = function(filename) {
     if (err) {
       return console.log("ERROR: reading " + filename + ": " + err), null;
     }
-    _.each(buf.toString().split(/\n/), addCompletions);
+    _.each(buf.toString().split(/\n/), function(s) { addCompletions(s)});
   });
 }
 
