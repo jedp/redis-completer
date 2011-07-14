@@ -20,7 +20,9 @@ exports.deleteAll = deleteAll = function(cb) {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1, cb);
 }
 
-exports.addCompletions = addCompletions = function (phrase, id, score) {
+exports.counter = 0;
+
+exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
   
@@ -38,10 +40,13 @@ exports.addCompletions = addCompletions = function (phrase, id, score) {
   _.each(text.split(/\s+/), function(word) {
     for (var end_index=1; end_index <= word.length; end_index++) {
       var prefix = word.slice(0, end_index);
-      r.zadd(ZKEY_COMPL, 0, prefix);
+      exports.counter++;
+      r.zadd(ZKEY_COMPL, 0, prefix, cb);
     }
-    r.zadd(ZKEY_COMPL, 0, word+'*');
-    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore);
+    exports.counter++;
+    r.zadd(ZKEY_COMPL, 0, word+'*', cb);
+    exports.counter++;
+    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore, cb);
   });
 }
 
