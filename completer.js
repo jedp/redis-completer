@@ -25,6 +25,12 @@ exports.counter = 0;
 exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
+
+  if (typeof score === 'function') {
+      cb = score;
+      score = null;
+  }
+
   
   var text = phrase.trim().toLowerCase();
   if (! text) {
