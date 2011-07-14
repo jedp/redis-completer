@@ -15,7 +15,7 @@ exports.applicationPrefix = applicationPrefix = function(prefix) {
   ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
 };
 
-function deleteAll() {
+exports.deleteAll = deleteAll = function() {
   // clear all data
   r.zremrangebyrank(ZKEY_COMPL, 0, -1);
 }
