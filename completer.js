@@ -15,14 +15,22 @@ exports.applicationPrefix = applicationPrefix = function(prefix) {
   ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
 };
 
-function deleteAll() {
+exports.deleteAll = deleteAll = function(cb) {
   // clear all data
-  r.zremrangebyrank(ZKEY_COMPL, 0, -1);
+  r.zremrangebyrank(ZKEY_COMPL, 0, -1, cb);
 }
 
-exports.addCompletions = addCompletions = function (phrase, id, score) {
+exports.counter = 0;
+
+exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
+
+  if (typeof score === 'function') {
+      cb = score;
+      score = null;
+  }
+
   
   var text = phrase.trim().toLowerCase();
   if (! text) {
@@ -38,10 +46,13 @@ exports.addCompletions = addCompletions = function (phrase, id, score) {
   _.each(text.split(/\s+/), function(word) {
     for (var end_index=1; end_index <= word.length; end_index++) {
       var prefix = word.slice(0, end_index);
-      r.zadd(ZKEY_COMPL, 0, prefix);
+      exports.counter++;
+      r.zadd(ZKEY_COMPL, 0, prefix, cb);
     }
-    r.zadd(ZKEY_COMPL, 0, word+'*');
-    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore);
+    exports.counter++;
+    r.zadd(ZKEY_COMPL, 0, word+'*', cb);
+    exports.counter++;
+    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore, cb);
   });
 }
 
