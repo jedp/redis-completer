@@ -12,11 +12,12 @@ var ZKEY_DOCS_PREFIX = 'docs:';
 var r; // redis client
 
 // Try to connect to localhost by default to preserve backwards compatibility.
-try {
-  r = redis.createClient();
-} catch (e) {
+r = redis.createClient();
+r.on("error", function (err) {
+  console.log("Redis error: " + err);
   console.log('Redis-Completer unable to connect to redis on 127.0.0.1:6379.');
-}
+  this.closing = true; // Don't retry.
+});
 
 // Initialization function that allows for a custom redis host and port.
 module.exports = function (redis_port, redis_host) {
