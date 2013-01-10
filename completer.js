@@ -1,4 +1,4 @@
-var r = require('redis').createClient();
+var redis = require('redis');
 var _ = require('underscore');
 var fs = require('fs');
 
@@ -8,21 +8,38 @@ var _appPrefix = '';
 var ZKEY_COMPL = 'compl';
 var ZKEY_DOCS_PREFIX = 'docs:';
 
-exports.applicationPrefix = applicationPrefix = function(prefix) {
+
+var r; // redis client
+
+// Try to connect to localhost by default to preserve backwards compatibility.
+r = redis.createClient();
+r.on("error", function (err) {
+  console.log("Redis error: " + err);
+  console.log('Redis-Completer unable to connect to redis on 127.0.0.1:6379.');
+  this.closing = true; // Don't retry.
+});
+
+// Initialization function that allows for a custom redis host and port.
+module.exports = function (redis_port, redis_host) {
+  r = redis.createClient(redis_port, redis_host);
+  return this;
+};
+
+module.exports.applicationPrefix = applicationPrefix = function(prefix) {
   // update key prefixes with user-specified application prefix
   _appPrefix = prefix;
   ZKEY_COMPL = prefix + ':' + 'compl';
   ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
 };
 
-exports.deleteAll = deleteAll = function(cb) {
+module.exports.deleteAll = deleteAll = function(cb) {
   // clear all data
   r.zremrangebyrank(ZKEY_COMPL, 0, -1, cb);
 }
 
-exports.counter = 0;
+module.exports.counter = 0;
 
-exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
+module.exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
 
@@ -46,17 +63,17 @@ exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   _.each(text.split(/\s+/), function(word) {
     for (var end_index=1; end_index <= word.length; end_index++) {
       var prefix = word.slice(0, end_index);
-      exports.counter++;
+      module.exports.counter++;
       r.zadd(ZKEY_COMPL, 0, prefix, cb);
     }
-    exports.counter++;
+    module.exports.counter++;
     r.zadd(ZKEY_COMPL, 0, word+'*', cb);
-    exports.counter++;
+    module.exports.counter++;
     r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore, cb);
   });
 }
 
-exports.addFromFile = addFromFile = function(filename) {
+module.exports.addFromFile = addFromFile = function(filename) {
   // reads the whole file at once
   // no error-checking. just cross your fingers.
   fs.readFile(filename, function(err, buf) {
@@ -67,7 +84,7 @@ exports.addFromFile = addFromFile = function(filename) {
   });
 }
 
-exports.getWordCompletions = getWordCompletions = function(word, count, callback) {
+module.exports.getWordCompletions = getWordCompletions = function(word, count, callback) {
   // get up to count completions for the given word
   // if prefix ends with '*', get the next exact completion
   var rangelen = 50;
@@ -113,7 +130,7 @@ exports.getWordCompletions = getWordCompletions = function(word, count, callback
   });
 }
 
-exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, callback) {
+module.exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, callback) {
 
   // when getting phrase completions, we should find a fuzzy match for the last
   // word, but treat the words before it as what the user intends.  So for
@@ -151,7 +168,7 @@ exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, ca
   });
 }
 
-exports.search = search = function(phrase, count, callback) {
+module.exports.search = search = function(phrase, count, callback) {
   // @callback with up to @count matches for @phrase
   var count = count || 10;
   var callback = callback || function() {};
