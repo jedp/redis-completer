@@ -25,7 +25,7 @@ exports.counter = 0;
 exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
-
+  var id = id || null;
   if (typeof score === 'function') {
       cb = score;
       score = null;
@@ -156,7 +156,7 @@ exports.search = search = function(phrase, count, callback) {
   var count = count || 10;
   var callback = callback || function() {};
 
-  getPhraseCompletions(phrase, 10, function(err, completions) {
+  getPhraseCompletions(phrase, count, function(err, completions) {
     if (err) {
       callback(err, null);
     } else {
