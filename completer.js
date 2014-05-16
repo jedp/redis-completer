@@ -1,4 +1,4 @@
-var r = require('redis').createClient();
+var redis = require('redis');
 var _ = require('underscore');
 var fs = require('fs');
 
@@ -7,6 +7,22 @@ var fs = require('fs');
 var _appPrefix = '';
 var ZKEY_COMPL = 'compl';
 var ZKEY_DOCS_PREFIX = 'docs:';
+
+
+var r; // redis client
+
+// Try to connect to localhost by default to preserve backwards compatibility.
+try {
+  r = redis.createClient();
+} catch (e) {
+  console.log('Redis-Completer unable to connect to redis on 127.0.0.1:6379.');
+}
+
+// Initialization function that allows for a custom redis host and port.
+module.exports = function (redis_port, redis_host) {
+  r = redis.createClient(redis_port, redis_host);
+  return this;
+};
 
 exports.applicationPrefix = applicationPrefix = function(prefix) {
   // update key prefixes with user-specified application prefix
