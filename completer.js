@@ -2,55 +2,60 @@ var redis = require('redis').createClient();
 var _ = require('underscore');
 var fs = require('fs');
 
-// prefixes for redis sets
-// use applicationPrefix() to set the initial prefix
-function Completer(prefix) {
-  this.prefix = prefix;
-  this.ZKEY_COMPL = 'compl';
-  this.ZKEY_DOCS_PREFIX = 'docs:';
+// Prefixes for redis sets. This is used in order to namespace
+// the keys in redis and not conflict with other autocomplete
+// features.
+function Completer(namespace) {
+  this.namespace = namespace;
+  this.zkey_autocomplete = 'autocomplete';
+  this.zkey_docs_prefix = 'docs:';
 
-  if (this.prefix) {
-    this.ZKEY_COMPL = this.prefix + ':' + 'compl';
-    this.ZKEY_DOCS_PREFIX = this.prefix + ':' + 'docs:';
+  if (this.namespace) {
+    this.zkey_autocomplete = `${this.namespace}:autocomplete`;
+    this.zkey_docs_prefix = `${this.namespace}:docs:`;
   }
 }
 
-Completer.prototype.deleteAll = function(cb) {
+Completer.prototype.deleteAll = function(callback) {
   // clear all data
-  redis.zremrangebyrank(this.ZKEY_COMPL, 0, -1, cb);
+  redis.zremrangebyrank(this.zkey_autocomplete, 0, -1, callback);
 }
 
-Completer.prototype.addCompletions = function(phrase, id, score, cb) {
+Completer.prototype.addCompletions = function(phrase, id, score, callback) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
   if (typeof score === 'function') {
-    cb = score;
+    callback = score;
     score = null;
   }
 
   var self = this;
-  var phraseToStore;
+  var phraseToStore = phrase;
 
   var text = phrase.trim().toLowerCase();
   if (!text) {
-    return null, null;
+    return console.error('You are trying to import empty phrase');
   }
 
-  if (id !== null) {
-    phraseToStore = id + ':' + phrase;
-  } else {
-    phraseToStore = phrase;
+  if (id) {
+    phraseToStore = `${id}:${phrase}`;
   }
 
-  var tokens = text.split(/\s+/);
+  var words = text.split(/\s+/);
 
-  tokens.forEach(function(token) {
-    for (var end_index = 1; end_index <= token.length; end_index++) {
-      var prefix = token.slice(0, end_index);
-      redis.zadd(self.ZKEY_COMPL, score || 0, prefix, cb);
+  // Iterate all over the words and insert them to the key namespace:autocomplete
+  words.forEach((word) => {
+    // Iterate over the characters of the word and insert them in the namespace:autocomplete
+    for (var end_index = 1; end_index <= word.length; end_index++) {
+      var character = word.slice(0, end_index);
+      redis.zadd(self.zkey_autocomplete, score || 0, character, callback);
     }
-    redis.zadd(self.ZKEY_COMPL, score || 0, token + '*', cb);
-    redis.zadd(self.ZKEY_DOCS_PREFIX + token, score || 0, phraseToStore, cb);
+
+    // Insert the word with the ending character in the namespace:autocomplete
+    redis.zadd(self.zkey_autocomplete, score || 0, `${word}*`, callback);
+
+    // Insert the doc (namespace:autocomplete:docs:word) that contains the whole phrase
+    redis.zadd(`${self.zkey_docs_prefix}${word}`, score || 0, phraseToStore, callback);
   });
 }
 
@@ -59,13 +64,15 @@ Completer.prototype.addFromFile = function(filename) {
 
   // reads the whole file at once
   // no error-checking. just cross your fingers.
-  fs.readFile(filename, function(err, buf) {
+  fs.readFile(filename, (err, buf) => {
     if (err) {
       return console.log("ERROR: reading " + filename + ": " + err), null;
     }
-    _.each(buf.toString().split(/\n/), function(s) {
-      self.addCompletions(s);
+
+    _.each(buf.toString().split(/\n/), (phrase) => {
+      self.addCompletions(phrase);
     });
+
   });
 }
 
@@ -84,18 +91,20 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
     return callback(null, results);
   }
 
-  redis.zrank(self.ZKEY_COMPL, termToSearch, function(err, start) {
-    if (!start) {
+  redis.zrank(self.zkey_autocomplete, termToSearch, (err, start) => {
+    if (err) {
+      return callback(err);
+    } else if (!start && typeof start !== 'number') {
       return callback(null, results);
     }
 
-    redis.zrange(self.ZKEY_COMPL, start, start + rangelen - 1, function(err, entries) {
+    redis.zrange(self.zkey_autocomplete, start, start + rangelen - 1, (err, entries) => {
       // Return there are no entries at all
       if (!entries || entries.length === 0) {
         return callback(null, results);
       }
 
-      entries.forEach(function(entry) {
+      entries.forEach((entry) => {
         var minLen = Math.min(entry.length, termToSearch.length);
 
         if (entry.slice(0, minLen) !== termToSearch.slice(0, minLen)) {
@@ -132,26 +141,26 @@ Completer.prototype.getPhraseCompletions = function(phrase, count, callback) {
   var resultSet = {};
   var semaphore = 0;
 
-  prefixes.forEach(function(prefix) {
-    self.getWordCompletions(prefix, count, function(err, results) {
+  prefixes.forEach((prefix) => {
+    self.getWordCompletions(prefix, count, (err, results) => {
       if (err) {
-        callback(err, []);
-      } else {
-        results.forEach(function(result) {
-          // intending this to be a set, so we only
-          // add each result once
-          resultSet[result] = result;
-        });
+        return callback(err, []);
       }
+
+      results.forEach((result) => {
+        // intending this to be a set, so we only
+        // add each result once
+        resultSet[result] = result;
+      });
 
       semaphore++;
       if (semaphore === prefixes.length) {
         // map set back to list
-        var resultList = _.map(resultSet, function(val, key) {
+        var resultList = _.map(resultSet, (val, key) => {
           return key;
         });
 
-        callback(null, resultList);
+        return callback(null, resultList);
       }
 
     });
@@ -165,58 +174,59 @@ Completer.prototype.search = function(phrase, count, callback) {
   var count = count || 10;
   var callback = callback || function() {};
 
-  self.getPhraseCompletions(phrase, count, function(err, completions) {
+  self.getPhraseCompletions(phrase, count, (err, completions) => {
     if (err) {
-      callback(err, null);
-    } else {
-      var keys = _.map(completions, function(key) {
-        return self.ZKEY_DOCS_PREFIX + key
-      });
-
-      if (keys.length) {
-        var results = {};
-        var semaphore = 0;
-
-        // accumulate docs and the scores for each key
-        keys.forEach(function(key) {
-          redis.zrevrangebyscore(key, 'inf', 0, 'withscores', function(err, docs) {
-            // returns a list of [doc, score, doc, score ...]
-            semaphore++;
-            if (err) {
-              return callback(err, {});
-            } else {
-              while (docs.length > 0) {
-                var doc = docs.shift();
-                var score = parseFloat(docs.shift());
-                var prevScore = typeof results[doc] !== 'undefined' && results[doc] || 0;
-                results[doc] = score + prevScore;
-              }
-              // credit for more overall matches
-              results[doc] += count * keys.length;
-            }
-
-            if (semaphore == keys.length) {
-              // it's annoying to deal with dictionaries in js
-              // turn it into a sorted list for the client's convenience
-              var ret = [];
-
-              for (var key in results) {
-                ret.push(key);
-              }
-
-              ret.sort(function(a, b) {
-                return results[b] - results[a]
-              });
-
-              return callback(null, ret);
-            }
-
-          });
-        });
-      } else {
-        callback(null, []);
-      }
+      return callback(err, null);
     }
+
+    var keys = _.map(completions, (key) => {
+      return self.zkey_docs_prefix + key
+    });
+
+    if (!keys.length) {
+      return callback(null, []);
+    }
+
+    var results = {};
+    var semaphore = 0;
+
+    // accumulate docs and the scores for each key
+    keys.forEach((key) => {
+      redis.zrevrangebyscore(key, 'inf', 0, 'withscores', (err, docs) => {
+        // returns a list of [doc, score, doc, score ...]
+        semaphore++;
+        if (err) {
+          return callback(err, {});
+        } else {
+          while (docs.length > 0) {
+            var doc = docs.shift();
+            var score = parseFloat(docs.shift());
+            var prevScore = typeof results[doc] !== 'undefined' && results[doc] || 0;
+            results[doc] = score + prevScore;
+          }
+          // credit for more overall matches
+          results[doc] += count * keys.length;
+        }
+
+        if (semaphore === keys.length) {
+          // it's annoying to deal with dictionaries in js
+          // turn it into a sorted list for the client's convenience
+          var ret = [];
+
+          for (var key in results) {
+            ret.push(key);
+          }
+
+          ret.sort((a, b) => {
+            return results[b] - results[a]
+          });
+
+          return callback(null, ret);
+        }
+
+      });
+    });
+
   });
 }
 
