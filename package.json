@@ -2,7 +2,7 @@
  "description": "A redis completer using Sebastian's trie algorithm: https://gist.github.com/574044",
  "keywords": ["redis", "completer", "trie", "autocomplete"],
 
- "version": "0.1.4", 
+ "version": "0.1.4",
  "authors": ["Jed Parsons <jed@jedparsons.com> (http://jedparsons.com)"],
 
  "repository":
@@ -17,12 +17,7 @@
  "main": "completer.js",
 
  "dependencies": {
-    "express": "",
-    "hiredis": "",
-    "jade": "",
-    "nodeunit": "",
-    "now": "",
-    "redis": "",
-    "underscore": ""
+    "redis": "2.6.5",
+    "underscore": "1.8.3"
  }
 }
