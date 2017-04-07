@@ -21,7 +21,7 @@ debugger;
 // });
 
 
-completer_gps.search("sur", 15, function (err, res) {
+completer_gps.search("p", 15, function (err, res) {
   if (err) {
     console.log(err);
     return;

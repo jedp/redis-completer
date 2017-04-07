@@ -23,6 +23,7 @@
   ],
   "main": "index.js",
   "scripts": {
+    "import": "node example/imports.js",
     "search": "node example/search.js",
     "test": "nodeunit test/test-completer.js"
   },
