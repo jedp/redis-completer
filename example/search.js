@@ -21,7 +21,7 @@ debugger;
 // });
 
 
-completer_gps.search("dd", 15, function (err, res) {
+completer_gps.search('HEATHFORD GROUP', 10, function (err, res) {
   if (err) {
     console.log(err);
     return;
