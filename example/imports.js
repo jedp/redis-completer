@@ -1,4 +1,4 @@
-var Completer = require('../lib/Completer');
+var Completer = require('../index');
 
 var completer_gps = new Completer('gps');
 
