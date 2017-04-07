@@ -29,6 +29,7 @@ Completer.prototype.addCompletions = function(phrase, id, score, cb) {
   }
 
   var self = this;
+  var phraseToStore;
 
   var text = phrase.trim().toLowerCase();
   if (!text) {
@@ -41,13 +42,15 @@ Completer.prototype.addCompletions = function(phrase, id, score, cb) {
     phraseToStore = phrase;
   }
 
-  _.each(text.split(/\s+/), function(word) {
-    for (var end_index = 1; end_index <= word.length; end_index++) {
-      var prefix = word.slice(0, end_index);
+  var tokens = text.split(/\s+/);
+
+  tokens.forEach(function(token) {
+    for (var end_index = 1; end_index <= token.length; end_index++) {
+      var prefix = token.slice(0, end_index);
       redis.zadd(self.ZKEY_COMPL, score || 0, prefix, cb);
     }
-    redis.zadd(self.ZKEY_COMPL, score || 0, word + '*', cb);
-    redis.zadd(self.ZKEY_DOCS_PREFIX + word, score || 0, phraseToStore, cb);
+    redis.zadd(self.ZKEY_COMPL, score || 0, token + '*', cb);
+    redis.zadd(self.ZKEY_DOCS_PREFIX + token, score || 0, phraseToStore, cb);
   });
 }
 
@@ -87,28 +90,27 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
     }
 
     redis.zrange(self.ZKEY_COMPL, start, start + rangelen - 1, function(err, entries) {
-      while (results.length <= count) {
+      // Return there are no entries at all
+      if (!entries || entries.length === 0) {
+        return callback(null, results);
+      }
 
-        // Break the iteration if there are no entries at all
-        if (!entries || entries.length === 0) {
-          break;
+      entries.forEach(function(entry) {
+        var minLen = Math.min(entry.length, termToSearch.length);
+
+        if (entry.slice(0, minLen) !== termToSearch.slice(0, minLen)) {
+          return callback(null, results);
         }
 
-        entries.forEach(function(entry) {
-          var minlen = Math.min(entry.length, termToSearch.length);
-
-          if (entry.slice(0, minlen) !== termToSearch.slice(0, minlen)) {
+        if (entry[entry.length - 1] === '*') {
+          results.push(entry.slice(0, -1));
+          if (getExact) {
             return callback(null, results);
           }
-
-          if (entry[entry.length - 1] === '*' && results.length <= count) {
-            results.push(entry.slice(0, -1));
-            if (getExact) {
-              return callback(null, results);
-            }
-          }
-        });
-      }
+        } else if (results.length >= count) {
+          return callback(null, results);
+        }
+      });
 
       return callback(null, results);
     });
@@ -148,6 +150,7 @@ Completer.prototype.getPhraseCompletions = function(phrase, count, callback) {
         var resultList = _.map(resultSet, function(val, key) {
           return key;
         });
+
         callback(null, resultList);
       }
 
@@ -175,7 +178,6 @@ Completer.prototype.search = function(phrase, count, callback) {
         var semaphore = 0;
 
         // accumulate docs and the scores for each key
-
         keys.forEach(function(key) {
           redis.zrevrangebyscore(key, 'inf', 0, 'withscores', function(err, docs) {
             // returns a list of [doc, score, doc, score ...]
@@ -197,12 +199,15 @@ Completer.prototype.search = function(phrase, count, callback) {
               // it's annoying to deal with dictionaries in js
               // turn it into a sorted list for the client's convenience
               var ret = [];
+
               for (var key in results) {
                 ret.push(key);
               }
+
               ret.sort(function(a, b) {
                 return results[b] - results[a]
               });
+
               return callback(null, ret);
             }
 
