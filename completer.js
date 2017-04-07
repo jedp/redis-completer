@@ -1,39 +1,39 @@
-var r = require('redis').createClient();
+var redis = require('redis').createClient();
 var _ = require('underscore');
 var fs = require('fs');
 
 // prefixes for redis sets
 // use applicationPrefix() to set the initial prefix
-var _appPrefix = '';
-var ZKEY_COMPL = 'compl';
-var ZKEY_DOCS_PREFIX = 'docs:';
+function Completer(prefix) {
+  this.prefix = prefix;
+  this.ZKEY_COMPL = 'compl';
+  this.ZKEY_DOCS_PREFIX = 'docs:';
 
-exports.applicationPrefix = applicationPrefix = function(prefix) {
-  // update key prefixes with user-specified application prefix
-  _appPrefix = prefix;
-  ZKEY_COMPL = prefix + ':' + 'compl';
-  ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
-};
-
-exports.deleteAll = deleteAll = function(cb) {
-  // clear all data
-  r.zremrangebyrank(ZKEY_COMPL, 0, -1, cb);
+  if (this.prefix) {
+    this.ZKEY_COMPL = this.prefix + ':' + 'compl';
+    this.ZKEY_DOCS_PREFIX = this.prefix + ':' + 'docs:';
+  }
 }
 
-exports.counter = 0;
+Completer.prototype.deleteAll = function(cb) {
+  // clear all data
+  redis.zremrangebyrank(this.ZKEY_COMPL, 0, -1, cb);
+}
 
-exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
+var counter = 0;
+
+Completer.prototype.addCompletions = function(phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
-
   if (typeof score === 'function') {
-      cb = score;
-      score = null;
+    cb = score;
+    score = null;
   }
 
-  
+  var self = this;
+
   var text = phrase.trim().toLowerCase();
-  if (! text) {
+  if (!text) {
     return null, null;
   }
 
@@ -44,68 +44,70 @@ exports.addCompletions = addCompletions = function (phrase, id, score, cb) {
   }
 
   _.each(text.split(/\s+/), function(word) {
-    for (var end_index=1; end_index <= word.length; end_index++) {
+    for (var end_index = 1; end_index <= word.length; end_index++) {
       var prefix = word.slice(0, end_index);
-      exports.counter++;
-      r.zadd(ZKEY_COMPL, 0, prefix, cb);
+      counter++;
+      redis.zadd(self.ZKEY_COMPL, score || 0, prefix, cb);
     }
-    exports.counter++;
-    r.zadd(ZKEY_COMPL, 0, word+'*', cb);
-    exports.counter++;
-    r.zadd(ZKEY_DOCS_PREFIX + word, score||0, phraseToStore, cb);
+    counter++;
+    redis.zadd(self.ZKEY_COMPL, score || 0, word + '*', cb);
+    counter++;
+    redis.zadd(self.ZKEY_DOCS_PREFIX + word, score || 0, phraseToStore, cb);
   });
 }
 
-exports.addFromFile = addFromFile = function(filename) {
+Completer.prototype.addFromFile = function(filename) {
   // reads the whole file at once
   // no error-checking. just cross your fingers.
   fs.readFile(filename, function(err, buf) {
     if (err) {
       return console.log("ERROR: reading " + filename + ": " + err), null;
     }
-    _.each(buf.toString().split(/\n/), function(s) { addCompletions(s)});
+    _.each(buf.toString().split(/\n/), function(s) { addCompletions(s) });
   });
 }
 
-exports.getWordCompletions = getWordCompletions = function(word, count, callback) {
+Completer.prototype.getWordCompletions = function(word, count, callback) {
+  var self = this;
+
   // get up to count completions for the given word
   // if prefix ends with '*', get the next exact completion
   var rangelen = 50;
- 
+
   var prefix = word.toLowerCase().trim();
-  var getExact = word[word.length-1] === '*'
+  var getExact = word[word.length - 1] === '*'
   var results = []
 
-  if (! prefix) {
+  if (!prefix) {
     return callback(null, results);
   }
 
-  r.zrank(ZKEY_COMPL, prefix, function(err, start) {
-    if (! start) {
+  redis.zrank(self.ZKEY_COMPL, prefix, function(err, start) {
+    if (!start) {
       return callback(null, results);
     }
 
-    r.zrange(ZKEY_COMPL, start, start + rangelen - 1, function(err, entries) {
+    redis.zrange(self.ZKEY_COMPL, start, start + rangelen - 1, function(err, entries) {
       while (results.length <= count) {
 
-        if (! entries || entries.length === 0) {
+        if (!entries || entries.length === 0) {
           break;
         }
-        
-        for (var i=0; i<entries.length; i++) {
+
+        for (var i = 0; i < entries.length; i++) {
           var entry = entries[i];
           var minlen = Math.min(entry.length, prefix.length);
 
           if (entry.slice(0, minlen) !== prefix.slice(0, minlen)) {
-            return callback(null,  results);
+            return callback(null, results);
           }
 
-          if (entry[entry.length-1] === '*' && results.length <= count) {
+          if (entry[entry.length - 1] === '*' && results.length <= count) {
             results.push(entry.slice(0, -1));
             if (getExact) {
               return callback(null, results);
             }
-          } 
+          }
         }
       }
       return callback(null, results);
@@ -113,8 +115,8 @@ exports.getWordCompletions = getWordCompletions = function(word, count, callback
   });
 }
 
-exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, callback) {
-
+Completer.prototype.getPhraseCompletions = function(phrase, count, callback) {
+  var self = this;
   // when getting phrase completions, we should find a fuzzy match for the last
   // word, but treat the words before it as what the user intends.  So for
   // instance, if we get "more pie", treat that as "more* pie"
@@ -129,7 +131,7 @@ exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, ca
   var iter = 0;
 
   _.each(prefixes, function(prefix) {
-    getWordCompletions(prefix, count, function(err, results) {
+    self.getWordCompletions(prefix, count, function(err, results) {
       if (err) {
         callback(err, []);
       } else {
@@ -143,7 +145,9 @@ exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, ca
 
       if (iter === prefixes.length) {
         // map set back to list
-        var resultList = _.map(resultSet, function(val, key) { return key; });
+        var resultList = _.map(resultSet, function(val, key) {
+          return key;
+        });
         callback(null, resultList);
       }
 
@@ -151,29 +155,31 @@ exports.getPhraseCompletions = getPhraseCompletions = function(phrase, count, ca
   });
 }
 
-exports.search = search = function(phrase, count, callback) {
+Completer.prototype.search = function(phrase, count, callback) {
+  var self = this;
+
   // @callback with up to @count matches for @phrase
   var count = count || 10;
   var callback = callback || function() {};
 
-  getPhraseCompletions(phrase, 10, function(err, completions) {
+  self.getPhraseCompletions(phrase, 10, function(err, completions) {
     if (err) {
       callback(err, null);
     } else {
-      var keys = _.map(completions, function(key) { 
-        return ZKEY_DOCS_PREFIX+key 
+      var keys = _.map(completions, function(key) {
+        return self.ZKEY_DOCS_PREFIX + key
       });
 
-      if (keys.length) { 
+      if (keys.length) {
         var results = {};
         var iter = 0;
 
         // accumulate docs and the scores for each key
-        
+
         _.each(keys, function(key) {
-          r.zrevrangebyscore(key, 'inf', 0, 'withscores', function (err, docs) {
+          redis.zrevrangebyscore(key, 'inf', 0, 'withscores', function(err, docs) {
             // returns a list of [doc, score, doc, score ...]
-            iter ++;  
+            iter++;
             if (err) {
               return callback(err, {});
             } else {
@@ -194,7 +200,9 @@ exports.search = search = function(phrase, count, callback) {
               for (var key in results) {
                 ret.push(key);
               }
-              ret.sort(function(a,b) { return results[b] - results[a] });
+              ret.sort(function(a, b) {
+                return results[b] - results[a]
+              });
               return callback(null, ret);
             }
 
@@ -206,3 +214,5 @@ exports.search = search = function(phrase, count, callback) {
     }
   });
 }
+
+module.exports = Completer;
