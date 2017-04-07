@@ -89,12 +89,12 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
     redis.zrange(self.ZKEY_COMPL, start, start + rangelen - 1, function(err, entries) {
       while (results.length <= count) {
 
+        // Break the iteration if there are no entries at all
         if (!entries || entries.length === 0) {
           break;
         }
 
-        for (var i = 0; i < entries.length; i++) {
-          var entry = entries[i];
+        entries.forEach(function(entry) {
           var minlen = Math.min(entry.length, termToSearch.length);
 
           if (entry.slice(0, minlen) !== termToSearch.slice(0, minlen)) {
@@ -107,7 +107,7 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
               return callback(null, results);
             }
           }
-        }
+        });
       }
 
       return callback(null, results);
