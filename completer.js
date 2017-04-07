@@ -20,8 +20,6 @@ Completer.prototype.deleteAll = function(cb) {
   redis.zremrangebyrank(this.ZKEY_COMPL, 0, -1, cb);
 }
 
-var counter = 0;
-
 Completer.prototype.addCompletions = function(phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
@@ -46,43 +44,44 @@ Completer.prototype.addCompletions = function(phrase, id, score, cb) {
   _.each(text.split(/\s+/), function(word) {
     for (var end_index = 1; end_index <= word.length; end_index++) {
       var prefix = word.slice(0, end_index);
-      counter++;
       redis.zadd(self.ZKEY_COMPL, score || 0, prefix, cb);
     }
-    counter++;
     redis.zadd(self.ZKEY_COMPL, score || 0, word + '*', cb);
-    counter++;
     redis.zadd(self.ZKEY_DOCS_PREFIX + word, score || 0, phraseToStore, cb);
   });
 }
 
 Completer.prototype.addFromFile = function(filename) {
+  var self = this;
+
   // reads the whole file at once
   // no error-checking. just cross your fingers.
   fs.readFile(filename, function(err, buf) {
     if (err) {
       return console.log("ERROR: reading " + filename + ": " + err), null;
     }
-    _.each(buf.toString().split(/\n/), function(s) { addCompletions(s) });
+    _.each(buf.toString().split(/\n/), function(s) {
+      self.addCompletions(s);
+    });
   });
 }
 
+// get up to count completions for the given word
+// if prefix ends with '*', get the next exact completion
 Completer.prototype.getWordCompletions = function(word, count, callback) {
   var self = this;
 
-  // get up to count completions for the given word
-  // if prefix ends with '*', get the next exact completion
   var rangelen = 50;
 
-  var prefix = word.toLowerCase().trim();
-  var getExact = word[word.length - 1] === '*'
-  var results = []
+  var termToSearch = word.toLowerCase().trim();
+  var getExact = word[word.length - 1] === '*';
+  var results = [];
 
-  if (!prefix) {
+  if (!termToSearch) {
     return callback(null, results);
   }
 
-  redis.zrank(self.ZKEY_COMPL, prefix, function(err, start) {
+  redis.zrank(self.ZKEY_COMPL, termToSearch, function(err, start) {
     if (!start) {
       return callback(null, results);
     }
@@ -96,9 +95,9 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
 
         for (var i = 0; i < entries.length; i++) {
           var entry = entries[i];
-          var minlen = Math.min(entry.length, prefix.length);
+          var minlen = Math.min(entry.length, termToSearch.length);
 
-          if (entry.slice(0, minlen) !== prefix.slice(0, minlen)) {
+          if (entry.slice(0, minlen) !== termToSearch.slice(0, minlen)) {
             return callback(null, results);
           }
 
@@ -110,16 +109,17 @@ Completer.prototype.getWordCompletions = function(word, count, callback) {
           }
         }
       }
+
       return callback(null, results);
     });
   });
 }
 
+// when getting phrase completions, we should find a fuzzy match for the last
+// word, but treat the words before it as what the user intends.  So for
+// instance, if we get "more pie", treat that as "more* pie"
 Completer.prototype.getPhraseCompletions = function(phrase, count, callback) {
   var self = this;
-  // when getting phrase completions, we should find a fuzzy match for the last
-  // word, but treat the words before it as what the user intends.  So for
-  // instance, if we get "more pie", treat that as "more* pie"
 
   phrase = phrase.toLowerCase().trim();
 
@@ -162,7 +162,7 @@ Completer.prototype.search = function(phrase, count, callback) {
   var count = count || 10;
   var callback = callback || function() {};
 
-  self.getPhraseCompletions(phrase, 10, function(err, completions) {
+  self.getPhraseCompletions(phrase, count, function(err, completions) {
     if (err) {
       callback(err, null);
     } else {
@@ -172,14 +172,14 @@ Completer.prototype.search = function(phrase, count, callback) {
 
       if (keys.length) {
         var results = {};
-        var iter = 0;
+        var semaphore = 0;
 
         // accumulate docs and the scores for each key
 
         _.each(keys, function(key) {
           redis.zrevrangebyscore(key, 'inf', 0, 'withscores', function(err, docs) {
             // returns a list of [doc, score, doc, score ...]
-            iter++;
+            semaphore++;
             if (err) {
               return callback(err, {});
             } else {
@@ -190,10 +190,10 @@ Completer.prototype.search = function(phrase, count, callback) {
                 results[doc] = score + prevScore;
               }
               // credit for more overall matches
-              results[doc] += 10 * keys.length;
+              results[doc] += count * keys.length;
             }
 
-            if (iter == keys.length) {
+            if (semaphore == keys.length) {
               // it's annoying to deal with dictionaries in js
               // turn it into a sorted list for the client's convenience
               var ret = [];
