@@ -128,22 +128,22 @@ Completer.prototype.getPhraseCompletions = function(phrase, count, callback) {
 
   var prefixes = phrase.split(/\s+/);
   var resultSet = {};
-  var iter = 0;
+  var semaphore = 0;
 
-  _.each(prefixes, function(prefix) {
+  prefixes.forEach(function(prefix) {
     self.getWordCompletions(prefix, count, function(err, results) {
       if (err) {
         callback(err, []);
       } else {
-        _.each(results, function(result) {
+        results.forEach(function(result) {
           // intending this to be a set, so we only
           // add each result once
           resultSet[result] = result;
         });
       }
-      iter++;
 
-      if (iter === prefixes.length) {
+      semaphore++;
+      if (semaphore === prefixes.length) {
         // map set back to list
         var resultList = _.map(resultSet, function(val, key) {
           return key;
@@ -176,7 +176,7 @@ Completer.prototype.search = function(phrase, count, callback) {
 
         // accumulate docs and the scores for each key
 
-        _.each(keys, function(key) {
+        keys.forEach(function(key) {
           redis.zrevrangebyscore(key, 'inf', 0, 'withscores', function(err, docs) {
             // returns a list of [doc, score, doc, score ...]
             semaphore++;
