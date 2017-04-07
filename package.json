@@ -23,6 +23,7 @@
   ],
   "main": "completer.js",
   "scripts": {
+    "search": "node example/search.js",
     "test": "nodeunit test/test-completer.js"
   },
   "dependencies": {
