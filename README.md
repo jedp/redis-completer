@@ -4,7 +4,7 @@ redis-autosuggest for node.js
 Installation
 -------------
 
-`npm install redis-completer`
+`npm install redis-autosuggest`
 
 Usage
 -----
