@@ -22,8 +22,8 @@ Get an importer and provide a unique namespace that the terms will save:
 
 Add completions for a document:
 
-    > completer.addCompletions(text, id, score);
-    > completer.addCompletions(text, id, score);
+    > importer.addCompletions(text, id, score);
+    > importer.addCompletions(text, id, score);
 
 `id` and `score` are optional.  If `id` is `null`, it will be ignored.
 
@@ -45,20 +45,6 @@ Get a completer and provide a unique namespace for your app:
     
 It's up to me to remember that I used a `key` and deal with that when I process
 the text.
-
-When multi-word phrases are matched, the scores for matches accumulate.  For
-example:
-
-    > completer.addCompletions("something borrowed", 'one',  6);
-    > completer.addCompletions("something blue",     'two', 10);
-
-    // most valuable match first
-    > completer.search("some", 10, print);
-    [ 'two:something blue', 'one:something borrowed' ]
-
-    // most valuable match after accumulating scores first
-    > completer.search("something borr", 10, print);
-    [ 'one:something borrowed', 'two:something blue' ]
 
 Shops example - importer
 -------------------------
