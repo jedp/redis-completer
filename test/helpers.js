@@ -4,6 +4,8 @@ const expect = require('chai').expect;
 
 const helpers = require('../lib/helpers');
 
+const data = require('./data');
+
 describe('helpers', () => {
 
   describe('parseLine', () => {
@@ -39,10 +41,45 @@ describe('helpers', () => {
 
   });
 
-  describe('parseLine', () => {
-    it('should return a shop object if more data passed', () => {
+  describe('findWordCandidates', () => {
 
+    it('should not crash if not term and entries', () => {
+      const candidates = helpers.findWordCandidates();
+
+      expect(candidates).to.be.an('array');
+      expect(candidates.length).to.equal(0);
     });
+
+    it('should be no candidates if no entries', () => {
+      const candidates = helpers.findWordCandidates('norm');
+
+      expect(candidates).to.be.an('array');
+      expect(candidates.length).to.equal(0);
+    });
+
+    it('should be candidates if entries', () => {
+      const candidates = helpers.findWordCandidates('norm', data.goodEntries);
+
+      expect(candidates).to.be.an('array');
+      expect(candidates.length).to.equal(2);
+      expect(candidates[0]).to.equal('norman');
+      expect(candidates[1]).to.equal('normanby');
+    });
+
+    it('should be no candidates if entries not matching', () => {
+      const candidates = helpers.findWordCandidates('norm', data.badEntries);
+
+      expect(candidates).to.be.an('array');
+      expect(candidates.length).to.equal(0);
+    });
+
+    it('should be no candidates if entries not matching', () => {
+      const candidates = helpers.findWordCandidates('norm', data.badEntries);
+
+      expect(candidates).to.be.an('array');
+      expect(candidates.length).to.equal(0);
+    });
+
   });
 
 });
