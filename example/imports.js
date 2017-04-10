@@ -1,6 +1,8 @@
+const redis = require('redis').createClient();
+
 var Importer = require('../lib/Importer');
 
-var importer_gps = new Importer('gps');
+var importer_gps = new Importer('gps', redis);
 
 // importer_gps.addCompletions("Surgery for humans", 1);
 // importer_gps.addCompletions("Surgery for pets", 2);
