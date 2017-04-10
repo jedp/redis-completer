@@ -73,11 +73,12 @@ describe('helpers', () => {
       expect(candidates.length).to.equal(0);
     });
 
-    it('should be no candidates if entries not matching', () => {
-      const candidates = helpers.findWordCandidates('norm', data.badEntries);
+    it('should return one result if count 1', () => {
+      const candidates = helpers.findWordCandidates('norm', data.goodEntries, 1);
 
       expect(candidates).to.be.an('array');
-      expect(candidates.length).to.equal(0);
+      expect(candidates.length).to.equal(1);
+      expect(candidates[0]).to.equal('norman');
     });
 
   });
