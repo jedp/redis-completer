@@ -83,4 +83,29 @@ describe('helpers', () => {
 
   });
 
+  describe('filterOutTheScore', () => {
+
+    it('should not crash if not term and entries', () => {
+      const results = helpers.filterOutTheScore();
+
+      expect(results).to.be.an('array');
+      expect(results.length).to.equal(0);
+    });
+
+    it('should filter out the zero cores', () => {
+      const expectedResult = [
+        '1:Norman & sons',
+        '2:The norman clothes',
+        '3:Best clothes - Norman'
+      ];
+
+      const results = helpers.filterOutTheScore(data.docsWithScores);
+
+      expect(results).to.be.an('array');
+      expect(results.length).to.equal(3);
+      expect(results).to.eql(expectedResult);
+    });
+
+  });
+
 });

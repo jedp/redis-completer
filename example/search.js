@@ -23,7 +23,7 @@ debugger;
 // });
 
 
-completer_gps.search('THE PRACTICE', 10, function (err, res) {
+completer_gps.search('norm', 10, function (err, res) {
   if (err) {
     console.log(err);
     return;

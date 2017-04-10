@@ -95,7 +95,17 @@ const badEntries = [
   'northcot'
 ];
 
+const docsWithScores = [
+  '1:Norman & sons',
+  '0',
+  '2:The norman clothes',
+  '0',
+  '3:Best clothes - Norman',
+  '0'
+]
+
 module.exports = {
   goodEntries,
-  badEntries
+  badEntries,
+  docsWithScores
 };
