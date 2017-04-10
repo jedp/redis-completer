@@ -108,4 +108,37 @@ describe('helpers', () => {
 
   });
 
+  describe('generateDocNames', () => {
+    it('should not crash if not zkey_docs_prefix and completions', () => {
+      const results = helpers.generateDocNames();
+
+      expect(results).to.be.an('array');
+      expect(results.length).to.equal(0);
+    });
+
+    it('should return empty array if no completions', () => {
+      const results = helpers.generateDocNames('shops');
+
+      expect(results).to.be.an('array');
+      expect(results.length).to.equal(0);
+    });
+
+    it('should return array with doc names', () => {
+      const expectedResult = [
+        'shops:docs:norman',
+        'shops:docs:normanby'
+      ];
+
+      const results = helpers.generateDocNames('shops:docs:', [
+        'norman',
+        'normanby'
+      ]);
+
+      expect(results).to.be.an('array');
+      expect(results.length).to.equal(2);
+      expect(results).to.eql(expectedResult);
+    });
+
+  });
+
 });
