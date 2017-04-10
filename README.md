@@ -59,3 +59,40 @@ example:
     // most valuable match after accumulating scores first
     > completer.search("something borr", 10, print);
     [ 'one:something borrowed', 'two:something blue' ]
+
+Shops example - importer
+-------------------------
+
+Assuming a CSV with stores:
+- 1,Virgin Active
+- 2,Action Store
+- 3,Acton Shoes
+- 4,Active Boots
+
+The importer will insert into the shops:autocomplete sorted set values like that:
+- 0 acton*
+- 0 acton
+- 0 acto
+- 0 active*
+- 0 active
+- 0 activ
+- 0 action*
+- 0 action
+- 0 actio
+- 0 acti
+- 0 act
+
+At the same time for each one of the starred values above we are creating another set that will include the exact phrases. For example, the shops:docs:active set will include the phrase:
+0 1:Virgin Active
+0 4:Active Boots
+
+Shops example - search
+-------------------------
+
+Having a term like 'act' the results that we should get back are:
+- 1:Virgin Active
+- 2:Action Store
+- 3:Acton Shoes
+- 4:Active Boots
+
+Getting the term 'act' we are getting from shops:autocomplete sorted set the results from the act and the next 50. We will iterate over these results and we will keep only the ones that they end up with a star ( * ). The terms that they end with a star we know that there is another set (e.g. shops:docs:active, shops:docs:acton, shops:docs:action) that will hold all the phrases that matched this starred term. We do this for all the starred terms that we found in the shops:autocomplete and finally we end up with a set of phrases. This is what we give back as a response.
