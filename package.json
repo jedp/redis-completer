@@ -1,28 +1,37 @@
-{"name": "redis-completer",
- "description": "A redis completer using Sebastian's trie algorithm: https://gist.github.com/574044",
- "keywords": ["redis", "completer", "trie", "autocomplete"],
-
- "version": "0.1.4", 
- "authors": ["Jed Parsons <jed@jedparsons.com> (http://jedparsons.com)"],
-
- "repository":
-    {"type": "git",
-     "url": "https://github.com/jedp/redis-completer"
-     },
-
- "licenses":
-  [ {"type": "MIT",
-     "url": "https://github.com/jedp/redis-completer/blob/master/LICENSE" }],
-
- "main": "completer.js",
-
- "dependencies": {
-    "express": "",
-    "hiredis": "",
-    "jade": "",
-    "nodeunit": "",
-    "now": "",
-    "redis": "",
-    "underscore": ""
- }
+{
+  "name": "redis-autosuggest",
+  "description": "A redis completer using Sebastian's trie algorithm: https://gist.github.com/574044",
+  "keywords": [
+    "redis",
+    "completer",
+    "trie",
+    "autocomplete"
+  ],
+  "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/szavrakas/redis-autosuggest"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jedp/redis-completer/blob/master/LICENSE"
+    }
+  ],
+  "main": "index.js",
+  "scripts": {
+    "import": "node example/imports.js",
+    "search": "node example/search.js",
+    "test": "mocha test",
+    "eslint": "eslint --ignore-path .gitignore ."
+  },
+  "dependencies": {
+    "csv-parser": "1.11.0"
+  },
+  "devDependencies": {
+    "chai": "3.5.0",
+    "eslint": "3.19.0",
+    "mocha": "3.2.0",
+    "redis": "2.6.5"
+  }
 }
