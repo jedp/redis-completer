@@ -22,13 +22,15 @@
   "scripts": {
     "import": "node example/imports.js",
     "search": "node example/search.js",
-    "test": "mocha test"
+    "test": "mocha test",
+    "eslint": "eslint --ignore-path .gitignore ."
   },
   "dependencies": {
     "underscore": "1.8.3"
   },
   "devDependencies": {
     "chai": "3.5.0",
+    "eslint": "3.19.0",
     "mocha": "3.2.0",
     "redis": "2.6.5"
   }

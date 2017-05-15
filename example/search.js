@@ -6,8 +6,6 @@ var Completer = require('../lib/Completer');
 
 var completer_gps = new Completer('gps', redis);
 
-debugger;
-
 // completer_gps.getWordCompletions("surgery", 15, function (err, res) {
 //   if (err) {
 //     console.log(err);

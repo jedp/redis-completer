@@ -102,7 +102,7 @@ const docsWithScores = [
   '0',
   '3:Best clothes - Norman',
   '0'
-]
+];
 
 module.exports = {
   goodEntries,
