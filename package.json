@@ -26,7 +26,7 @@
     "eslint": "eslint --ignore-path .gitignore ."
   },
   "dependencies": {
-    "underscore": "1.8.3"
+    "csv-parser": "1.11.0"
   },
   "devDependencies": {
     "chai": "3.5.0",
