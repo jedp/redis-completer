@@ -2,18 +2,13 @@ var r = require('redis').createClient();
 var _ = require('underscore');
 var fs = require('fs');
 
-// expose redis client to friends
-exports.redis = r;
-
 // prefixes for redis sets
 // use applicationPrefix() to set the initial prefix
-var _appPrefix = '';
 var ZKEY_COMPL = 'compl';
 var ZKEY_DOCS_PREFIX = 'docs:';
 
 var applicationPrefix = exports.applicationPrefix = function (prefix) {
   // update key prefixes with user-specified application prefix
-  _appPrefix = prefix;
   ZKEY_COMPL = prefix + ':' + 'compl';
   ZKEY_DOCS_PREFIX = prefix + ':' + 'docs:';
 };
@@ -23,11 +18,11 @@ var deleteAll = exports.deleteAll = function (cb) {
   r.zremrangebyrank(ZKEY_COMPL, 0, -1, cb);
 };
 
-exports.counter = 0;
-
 var addCompletions = exports.addCompletions = function (phrase, id, score, cb) {
   // Add completions for originalText to the completions trie.
   // Store the original text, prefixed by the optional 'key'
+
+  var phraseToStore;
 
   if (typeof score === 'function') {
     cb = score;
@@ -36,7 +31,7 @@ var addCompletions = exports.addCompletions = function (phrase, id, score, cb) {
 
   var text = phrase.trim().toLowerCase();
   if (!text) {
-    return null, null;
+    return null;
   }
 
   if (id !== null) {
@@ -46,8 +41,8 @@ var addCompletions = exports.addCompletions = function (phrase, id, score, cb) {
   }
 
   _.each(text.split(/\s+/), function (word) {
-    for (var end_index = 1; end_index <= word.length; end_index++) {
-      var prefix = word.slice(0, end_index);
+    for (var endIndex = 1; endIndex <= word.length; endIndex++) {
+      var prefix = word.slice(0, endIndex);
       exports.counter++;
       r.zadd(ZKEY_COMPL, 0, prefix, cb);
     }
@@ -63,7 +58,7 @@ var addFromFile = exports.addFromFile = function (filename) {
   // no error-checking. just cross your fingers.
   fs.readFile(filename, function (err, buf) {
     if (err) {
-      return console.log('ERROR: reading ' + filename + ': ' + err), null;
+      return console.log('ERROR: reading ' + filename + ': ' + err);
     }
     _.each(buf.toString().split(/\n/), function (s) { addCompletions(s); });
   });
@@ -83,11 +78,17 @@ var getWordCompletions = exports.getWordCompletions = function (word, count, cal
   }
 
   r.zrank(ZKEY_COMPL, prefix, function (err, start) {
+    if (err) {
+      return callback(err);
+    }
     if (!start) {
       return callback(null, results);
     }
 
     r.zrange(ZKEY_COMPL, start, start + rangelen - 1, function (err, entries) {
+      if (err) {
+        return callback(err);
+      }
       while (results.length <= count) {
         if (!entries || entries.length === 0) {
           break;
@@ -122,7 +123,7 @@ var getPhraseCompletions = exports.getPhraseCompletions = function (phrase, coun
   phrase = phrase.toLowerCase().trim();
 
   // tag all words but last as 'exact' matches
-  phrase = phrase.replace(/(\w)\s+/g, '$1\* ');
+  phrase = phrase.replace(/(\w)\s+/g, '$1* ');
 
   var prefixes = phrase.split(/\s+/);
   var resultSet = {};
@@ -152,10 +153,10 @@ var getPhraseCompletions = exports.getPhraseCompletions = function (phrase, coun
 
 var search = exports.search = function (phrase, count, callback) {
   // @callback with up to @count matches for @phrase
-  var count = count || 10;
-  var callback = callback || function () {};
+  count = count || 10;
+  callback = callback || function () {};
 
-  getPhraseCompletions(phrase, 10, function (err, completions) {
+  getPhraseCompletions(phrase, count, function (err, completions) {
     if (err) {
       callback(err, null);
     } else {
@@ -179,14 +180,14 @@ var search = exports.search = function (phrase, count, callback) {
               while (docs.length > 0) {
                 var doc = docs.shift();
                 var score = parseFloat(docs.shift());
-                var prevScore = typeof results[doc] !== 'undefined' && results[doc] || 0;
+                var prevScore = (typeof results[doc] !== 'undefined' && results[doc]) || 0;
                 results[doc] = score + prevScore;
               }
               // credit for more overall matches
               results[doc] += 10 * keys.length;
             }
 
-            if (iter == keys.length) {
+            if (iter === keys.length) {
               // it's annoying to deal with dictionaries in js
               // turn it into a sorted list for the client's convenience
               var ret = [];
@@ -203,4 +204,17 @@ var search = exports.search = function (phrase, count, callback) {
       }
     }
   });
+};
+
+// expose redis-client, counter & API to friends
+exports = {
+  redis: r,
+  counter: 0,
+  applicationPrefix: applicationPrefix,
+  deleteAll: deleteAll,
+  addCompletions: addCompletions,
+  addFromFile: addFromFile,
+  getWordCompletions: getWordCompletions,
+  getPhraseCompletions: getPhraseCompletions,
+  search: search
 };
